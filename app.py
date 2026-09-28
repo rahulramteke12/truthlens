@@ -138,11 +138,17 @@ def evaluate_news(raw_text):
 app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'))
 
 @app.route('/')
+@app.route('/api')
+@app.route('/api/index')
+@app.route('/api/index.py')
 def home():
     """Renders the main page."""
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
+@app.route('/api/predict', methods=['POST'])
+@app.route('/api/index/predict', methods=['POST'])
+@app.route('/api/index.py/predict', methods=['POST'])
 def predict():
     """Receives news text, evaluates veracity, and returns structured analysis JSON."""
     if request.method == 'POST':
@@ -176,6 +182,15 @@ def predict():
             'word_count': analysis['word_count'],
             'char_count': analysis['char_count']
         })
+
+@app.route('/favicon.ico')
+def favicon():
+    return ('', 204)
+
+@app.errorhandler(404)
+def handle_404(e):
+    """Graceful fallback so Vercel path rewrites never produce a raw 404 error."""
+    return render_template('index.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
