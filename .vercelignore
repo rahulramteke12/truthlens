@@ -1,0 +1,12 @@
+dataset/
+*.csv
+slides/
+.git/
+.venv/
+env/
+venv/
+__pycache__/
+*.pyc
+*.zip
+.idea/
+.vscode/

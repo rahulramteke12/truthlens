@@ -1,14 +1,22 @@
-# app.py
-
+import os
 import pickle
 import re
 import string
 import pandas as pd
 from flask import Flask, request, render_template, jsonify
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 print("Loading model and vectorizer...")
-vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
-model = pickle.load(open("model.pkl", "rb"))
+vectorizer_path = os.path.join(BASE_DIR, "vectorizer.pkl")
+model_path = os.path.join(BASE_DIR, "model.pkl")
+
+with open(vectorizer_path, "rb") as f:
+    vectorizer = pickle.load(f)
+
+with open(model_path, "rb") as f:
+    model = pickle.load(f)
+
 print("Model and vectorizer loaded successfully.")
 
 # Sensationalist and clickbait markers
@@ -127,7 +135,7 @@ def evaluate_news(raw_text):
         'char_count': total_chars
     }
 
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'))
 
 @app.route('/')
 def home():
