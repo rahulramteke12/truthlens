@@ -1,0 +1,14 @@
+dataset/News.csv filter=lfs diff=lfs merge=lfs -text
+dataset/Fake.csv filter=lfs diff=lfs merge=lfs -text
+dataset/True.csv filter=lfs diff=lfs merge=lfs -text
+News_clean.csv filter=lfs diff=lfs merge=lfs -text
+*.csv filter=lfs diff=lfs merge=lfs -text
+# Ignore Jupyter Notebooks in language stats
+*.ipynb linguist-documentation
+
+# Ignore HTML templates in language stats
+*.html linguist-documentation
+
+# Ignore CSS/JS if you have them and don't want them counted
+*.css linguist-documentation
+*.js linguist-documentation

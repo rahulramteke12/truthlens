@@ -1,0 +1,17 @@
+# Ignore datasets
+dataset/
+*.csv
+
+# Ignore python cache
+__pycache__/
+*.py[cod]
+
+# Ignore virtual environments
+env/
+venv/
+.venv/
+
+# Archives & IDE
+*.zip
+.idea/
+.vscode/

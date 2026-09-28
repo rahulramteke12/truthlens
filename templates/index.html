@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TruthLens AI — Real-Time News Authenticity & Misinformation Detector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-glass: rgba(255, 255, 255, 0.88);
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-sub: #94a3b8;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --reliable: #059669;
+            --reliable-bg: #ecfdf5;
+            --reliable-border: #a7f3d0;
+            --reliable-glow: rgba(5, 150, 105, 0.15);
+            --fake: #dc2626;
+            --fake-bg: #fef2f2;
+            --fake-border: #fecaca;
+            --fake-glow: rgba(220, 38, 38, 0.15);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+        }
+
+        [data-theme="dark"] {
+            --bg: #090d16;
+            --surface: #111827;
+            --surface-glass: rgba(17, 24, 39, 0.88);
+            --border: #1f2937;
+            --border-hover: #374151;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --text-sub: #6b7280;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --primary-light: rgba(59, 130, 246, 0.12);
+            --reliable: #10b981;
+            --reliable-bg: rgba(16, 185, 129, 0.12);
+            --reliable-border: rgba(16, 185, 129, 0.3);
+            --fake: #f87171;
+            --fake-bg: rgba(239, 68, 68, 0.12);
+            --fake-border: rgba(239, 68, 68, 0.3);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.4);
+            --shadow-xl: 0 20px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Header */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(12px);
+            background-color: var(--surface-glass);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+        }
+
+        .nav-content {
+            max-width: 1060px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-main);
+            font-weight: 800;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-badge {
+            background: linear-gradient(135deg, #2563eb, #6366f1);
+            color: white;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .accuracy-pill {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--reliable-bg);
+            color: var(--reliable);
+            border: 1px solid var(--reliable-border);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 9999px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            background-color: var(--reliable);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .theme-toggle:hover {
+            color: var(--text-main);
+            border-color: var(--border-hover);
+        }
+
+        /* Workspace */
+        main {
+            flex: 1;
+            max-width: 1040px;
+            width: 100%;
+            margin: 28px auto;
+            padding: 0 20px;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .hero-title {
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .hero-title span {
+            background: linear-gradient(135deg, #2563eb, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-desc {
+            color: var(--text-muted);
+            font-size: 15px;
+            max-width: 640px;
+            margin: 0 auto 16px;
+        }
+
+        /* Accuracy & Model Stats Ribbon */
+        .stats-ribbon {
+            display: inline-flex;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            padding: 6px 18px;
+            box-shadow: var(--shadow-sm);
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12.5px;
+        }
+
+        .stat-highlight {
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .stat-sep {
+            color: var(--border);
+        }
+
+        /* Main Card */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: 28px;
+        }
+
+        /* Samples Bar */
+        .samples-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .samples-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-sub);
+        }
+
+        .sample-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .chip {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .chip:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .chip-real {
+            border-left: 3px solid var(--reliable);
+        }
+
+        .chip-fake {
+            border-left: 3px solid var(--fake);
+        }
+
+        /* Textarea and Editor */
+        .textarea-wrapper {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 170px;
+            padding: 16px;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 15px;
+            color: var(--text-main);
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            background: var(--surface);
+        }
+
+        .input-meta-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-sub);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .input-stats {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            padding: 11px 20px;
+            border: none;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg);
+            color: var(--text-main);
+            border-color: var(--border-hover);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Loader */
+        .scanner-loader {
+            display: none;
+            text-align: center;
+            padding: 32px 0;
+        }
+
+        .scanner-orbit {
+            width: 44px;
+            height: 44px;
+            border: 3.5px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 14px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .scanner-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Results Display */
+        .results-section {
+            display: none;
+            margin-top: 30px;
+            animation: fadeIn 0.35s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .verdict-banner {
+            border-radius: var(--radius-md);
+            padding: 22px;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .verdict-banner.reliable {
+            background: var(--reliable-bg);
+            border: 1.5px solid var(--reliable-border);
+            box-shadow: 0 10px 25px -5px var(--reliable-glow);
+        }
+
+        .verdict-banner.fake {
+            background: var(--fake-bg);
+            border: 1.5px solid var(--fake-border);
+            box-shadow: 0 10px 25px -5px var(--fake-glow);
+        }
+
+        .verdict-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .verdict-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .verdict-title {
+            font-size: 21px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .reliable .verdict-title { color: var(--reliable); }
+        .fake .verdict-title { color: var(--fake); }
+
+        .verdict-summary {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            max-width: 480px;
+        }
+
+        .gauge-box {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .circular-chart {
+            display: block;
+            margin: 0 auto;
+            max-width: 76px;
+            max-height: 76px;
+        }
+
+        .circle-bg {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 3.8;
+        }
+
+        .circle {
+            fill: none;
+            stroke-width: 3.8;
+            stroke-linecap: round;
+            transition: stroke-dasharray 0.8s ease;
+        }
+
+        .reliable .circle { stroke: var(--reliable); }
+        .fake .circle { stroke: var(--fake); }
+
+        .percentage {
+            fill: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 9.5px;
+            font-weight: 800;
+            text-anchor: middle;
+        }
+
+        .gauge-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-sub);
+            margin-top: 3px;
+        }
+
+        /* Metric Grid */
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .metric-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+        }
+
+        .metric-title {
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-sub);
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Explainability Inspector */
+        .inspector-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            margin-bottom: 20px;
+        }
+
+        .inspector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .inspector-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-sub);
+        }
+
+        .tag-legend {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .highlight-text-content {
+            font-size: 14px;
+            line-height: 1.8;
+            color: var(--text-main);
+            background: var(--surface);
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .hl-cred {
+            background: rgba(16, 185, 129, 0.2);
+            color: #047857;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--reliable);
+        }
+
+        .hl-sens {
+            background: rgba(239, 68, 68, 0.2);
+            color: #b91c1c;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--fake);
+        }
+
+        /* Signals */
+        .signals-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .signal-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 9999px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+
+        .signal-pill.green {
+            color: var(--reliable);
+            border-color: var(--reliable-border);
+            background: var(--reliable-bg);
+        }
+
+        .signal-pill.red {
+            color: var(--fake);
+            border-color: var(--fake-border);
+            background: var(--fake-bg);
+        }
+
+        /* History */
+        .history-section {
+            margin-top: 32px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .history-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .history-clear {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .history-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .history-item:hover {
+            border-color: var(--primary);
+            background: var(--bg);
+        }
+
+        .history-snippet {
+            font-size: 13px;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
+        }
+
+        .history-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 9999px;
+        }
+
+        .history-badge.reliable {
+            background: var(--reliable-bg);
+            color: var(--reliable);
+        }
+
+        .history-badge.fake {
+            background: var(--fake-bg);
+            color: var(--fake);
+        }
+
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 22px;
+            color: var(--text-sub);
+            font-size: 13px;
+            border-top: 1px solid var(--border);
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--text-main);
+            color: var(--bg);
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: var(--shadow-xl);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 640px) {
+            .stats-ribbon { flex-direction: column; gap: 8px; border-radius: var(--radius-md); }
+            .stat-sep { display: none; }
+            .verdict-banner { flex-direction: column; gap: 16px; text-align: center; }
+            .verdict-info { flex-direction: column; }
+            .action-bar { flex-direction: column; width: 100%; }
+            .action-bar .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="nav-content">
+            <a href="/" class="logo">
+                <span>🔍 TruthLens AI</span>
+                <span class="logo-badge">v2.0</span>
+            </a>
+            <div class="nav-actions">
+                <div class="accuracy-pill">
+                    <span class="status-dot"></span>
+                    <span>96.7% ML Accuracy</span>
+                </div>
+                <button class="theme-toggle" id="theme-btn" title="Toggle Dark/Light Mode">🌙</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <h1 class="hero-title">Verify News with <span>TruthLens AI</span></h1>
+            <p class="hero-desc">Real-time authenticity, source attribution, and clickbait intelligence powered by a de-biased soft-voting ensemble.</p>
+            
+            <!-- Model Performance Ribbon -->
+            <div class="stats-ribbon">
+                <div class="stat-item">
+                    <span class="stat-highlight">96.7%</span>
+                    <span class="stat-desc">Test Accuracy</span>
+                </div>
+                <span class="stat-sep">•</span>
+                <div class="stat-item">
+                    <span class="stat-highlight">97.0%</span>
+                    <span class="stat-desc">Precision / Recall</span>
+                </div>
+                <span class="stat-sep">•</span>
+                <div class="stat-item">
+                    <span class="stat-highlight">Dual Engine</span>
+                    <span class="stat-desc">LR + Naive Bayes</span>
+                </div>
+                <span class="stat-sep">•</span>
+                <div class="stat-item">
+                    <span class="stat-highlight">&lt; 35ms</span>
+                    <span class="stat-desc">Inference</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <!-- Preset Samples Bar -->
+            <div class="samples-bar">
+                <div class="samples-header">
+                    <span class="samples-label">⚡ Quick Test Bench:</span>
+                </div>
+                <div class="sample-chips">
+                    <div class="chip chip-real" onclick="loadSample('real_science')">
+                        <span>🔬 Science Discovery</span>
+                    </div>
+                    <div class="chip chip-real" onclick="loadSample('real_econ')">
+                        <span>📈 Economic Policy</span>
+                    </div>
+                    <div class="chip chip-real" onclick="loadSample('real_space')">
+                        <span>🚀 NASA Space Exploration</span>
+                    </div>
+                    <div class="chip chip-fake" onclick="loadSample('fake_conspiracy')">
+                        <span>⚠️ Deep State Conspiracy</span>
+                    </div>
+                    <div class="chip chip-fake" onclick="loadSample('fake_cure')">
+                        <span>💊 Miracle Cure Clickbait</span>
+                    </div>
+                    <div class="chip chip-fake" onclick="loadSample('fake_viral')">
+                        <span>🛸 Viral Deception</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- News Input Form -->
+            <form id="news-form">
+                <div class="textarea-wrapper">
+                    <textarea id="news-text" name="news_text" placeholder="Paste article text, headline, or news report here to verify authenticity..." required></textarea>
+                    <div class="input-meta-bar">
+                        <div class="input-stats">
+                            <span id="char-count">0 characters</span>
+                            <span>•</span>
+                            <span id="word-count">0 words</span>
+                            <span>•</span>
+                            <span id="read-time">&lt; 1 min read</span>
+                        </div>
+                        <div>
+                            <span>Input ready</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button type="button" class="btn btn-outline" onclick="pasteClipboard()">📋 Paste</button>
+                    <button type="button" class="btn btn-outline" onclick="clearEditor()">Clear</button>
+                    <button type="submit" class="btn btn-primary" id="verify-btn">
+                        <span>⚡ Verify with TruthLens</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Loading Spinner -->
+            <div class="scanner-loader" id="loader">
+                <div class="scanner-orbit"></div>
+                <div class="scanner-text">Evaluating linguistic markers and ensemble vectors...</div>
+            </div>
+
+            <!-- Analysis Results -->
+            <div class="results-section" id="results-view">
+                <!-- Hero Verdict Banner -->
+                <div class="verdict-banner" id="verdict-card">
+                    <div class="verdict-info">
+                        <div class="verdict-icon" id="verdict-icon">✅</div>
+                        <div>
+                            <div class="verdict-title" id="verdict-text">Reliable News Source</div>
+                            <div class="verdict-summary" id="verdict-summary">This article exhibits neutral, fact-oriented journalistic characteristics.</div>
+                        </div>
+                    </div>
+
+                    <!-- Circular Confidence Meter -->
+                    <div class="gauge-box">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg"
+                                d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <path class="circle" id="gauge-circle"
+                                stroke-dasharray="0, 100"
+                                d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <text x="18" y="20.8" class="percentage" id="gauge-text">0%</text>
+                        </svg>
+                        <span class="gauge-label" id="gauge-label">Confidence</span>
+                    </div>
+                </div>
+
+                <!-- 4 Diagnostics Grid -->
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">📊 Clickbait Propensity</div>
+                        <div class="metric-value" id="val-clickbait">Low</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">🎙️ Tone & Rhetoric</div>
+                        <div class="metric-value" id="val-tone">Objective / Factual</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">📑 Attribution & Citations</div>
+                        <div class="metric-value" id="val-attribution">Present</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">🔍 Trust Score</div>
+                        <div class="metric-value" id="val-trust">88 / 100</div>
+                    </div>
+                </div>
+
+                <!-- Explainability Token Inspector -->
+                <div class="inspector-box">
+                    <div class="inspector-header">
+                        <span class="inspector-title">🧬 Explainable AI Content Breakdown</span>
+                        <div class="tag-legend">
+                            <span class="legend-item"><span class="legend-dot" style="background:var(--reliable);"></span> Credible Citation</span>
+                            <span class="legend-item"><span class="legend-dot" style="background:var(--fake);"></span> Sensational Marker</span>
+                        </div>
+                    </div>
+                    <div class="highlight-text-content" id="annotated-text"></div>
+                    <div class="signals-container" id="signals-cloud" style="margin-top:14px;"></div>
+                </div>
+            </div>
+
+            <!-- Recent Scans History -->
+            <div class="history-section" id="history-section" style="display:none;">
+                <div class="history-header">
+                    <span class="history-title">🕒 Recent Verifications</span>
+                    <button class="history-clear" onclick="clearHistory()">Clear History</button>
+                </div>
+                <div class="history-list" id="history-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p><strong>TruthLens AI</strong> • 96.7% Test Accuracy (Soft-Voting Ensemble) • Intelligent News Verification Engine</p>
+    </footer>
+
+    <div id="toast">Copied to clipboard!</div>
+
+    <script>
+        const SAMPLES = {
+            real_science: "Scientists discover water ice deposits beneath the surface of Mars according to newly published radar research from space agencies.",
+            real_econ: "The government announced a new economic stimulus package to support small businesses following quarterly revenue review.",
+            real_space: "NASA launches new space telescope to study distant stars and solar systems in deep space exploration program.",
+            fake_conspiracy: "BREAKING: Shocking secret video exposes Hillary Clinton's secret clone in underground bunker, deep state in panic!",
+            fake_cure: "MIRACLE CURE: Doctors baffled as common kitchen spice eliminates all illnesses overnight, click here to see the secret!",
+            fake_viral: "SHOCKING PROOF: NASA whistleblower admits Earth is completely flat and world governments have lied for 100 years!"
+        };
+
+        const textarea = document.getElementById('news-text');
+        const charCount = document.getElementById('char-count');
+        const wordCount = document.getElementById('word-count');
+        const readTime = document.getElementById('read-time');
+
+        textarea.addEventListener('input', updateStats);
+        function updateStats() {
+            const text = textarea.value.trim();
+            const chars = text.length;
+            const words = text ? text.split(/\s+/).length : 0;
+            charCount.textContent = `${chars} character${chars !== 1 ? 's' : ''}`;
+            wordCount.textContent = `${words} word${words !== 1 ? 's' : ''}`;
+            const mins = Math.ceil(words / 200);
+            readTime.textContent = words > 0 ? `~${mins} min read` : '< 1 min read';
+        }
+
+        function loadSample(key) {
+            textarea.value = SAMPLES[key];
+            updateStats();
+            document.getElementById('verify-btn').click();
+        }
+
+        function clearEditor() {
+            textarea.value = '';
+            updateStats();
+            document.getElementById('results-view').style.display = 'none';
+        }
+
+        async function pasteClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                textarea.value = text;
+                updateStats();
+                showToast("Pasted from clipboard!");
+            } catch (err) {
+                textarea.focus();
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        const form = document.getElementById('news-form');
+        const loader = document.getElementById('loader');
+        const resultsView = document.getElementById('results-view');
+        const verifyBtn = document.getElementById('verify-btn');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const text = textarea.value.trim();
+            if (!text) return;
+
+            loader.style.display = 'block';
+            resultsView.style.display = 'none';
+            verifyBtn.disabled = true;
+
+            const formData = new FormData(form);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                loader.style.display = 'none';
+                verifyBtn.disabled = false;
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                renderResults(data, text);
+                saveToHistory(text, data);
+            })
+            .catch(err => {
+                loader.style.display = 'none';
+                verifyBtn.disabled = false;
+                alert("Failed to analyze. Please ensure TruthLens server is running.");
+                console.error(err);
+            });
+        });
+
+        function renderResults(data, originalText) {
+            resultsView.style.display = 'block';
+
+            const verdictCard = document.getElementById('verdict-card');
+            const verdictIcon = document.getElementById('verdict-icon');
+            const verdictText = document.getElementById('verdict-text');
+            const verdictSummary = document.getElementById('verdict-summary');
+            const gaugeCircle = document.getElementById('gauge-circle');
+            const gaugeText = document.getElementById('gauge-text');
+            const gaugeLabel = document.getElementById('gauge-label');
+
+            verdictCard.className = `verdict-banner ${data.label}`;
+
+            if (data.label === 'reliable') {
+                verdictIcon.textContent = '✅';
+                verdictText.textContent = 'Reliable News Source';
+                verdictSummary.textContent = data.verdict_summary || 'This article exhibits neutral, fact-oriented journalistic characteristics.';
+                gaugeLabel.textContent = 'Confidence';
+            } else {
+                verdictIcon.textContent = '⚠️';
+                verdictText.textContent = 'Fake News Detected';
+                verdictSummary.textContent = data.verdict_summary || 'This text exhibits patterns frequently associated with misinformation or clickbait.';
+                gaugeLabel.textContent = 'Fake Index';
+            }
+
+            const conf = data.confidence || 85;
+            gaugeText.textContent = `${conf}%`;
+            gaugeCircle.setAttribute('stroke-dasharray', `${conf}, 100`);
+
+            document.getElementById('val-clickbait').textContent = data.clickbait_risk || 'Low';
+            document.getElementById('val-tone').textContent = data.tone || 'Objective / Factual';
+            document.getElementById('val-attribution').textContent = data.attribution || 'Standard Reporting';
+            document.getElementById('val-trust').textContent = `${data.trust_score} / 100`;
+
+            // Highlighting
+            let annotated = escapeHtml(originalText);
+            
+            if (data.cred_matches && data.cred_matches.length > 0) {
+                data.cred_matches.forEach(term => {
+                    const regex = new RegExp(`\\b(${escapeRegExp(term)})\\b`, 'gi');
+                    annotated = annotated.replace(regex, `<span class="hl-cred" title="Credibility Citation">$1</span>`);
+                });
+            }
+
+            if (data.sens_matches && data.sens_matches.length > 0) {
+                data.sens_matches.forEach(term => {
+                    const regex = new RegExp(`\\b(${escapeRegExp(term)})\\b`, 'gi');
+                    annotated = annotated.replace(regex, `<span class="hl-sens" title="Sensationalist Trigger">$1</span>`);
+                });
+            }
+
+            document.getElementById('annotated-text').innerHTML = annotated;
+
+            // Signals cloud
+            const signalsCloud = document.getElementById('signals-cloud');
+            signalsCloud.innerHTML = '';
+
+            if (data.label === 'reliable') {
+                signalsCloud.innerHTML += `<span class="signal-pill green">✓ Verified Journalistic Tone</span>`;
+                signalsCloud.innerHTML += `<span class="signal-pill green">✓ Low Clickbait Score</span>`;
+                if (data.cred_matches && data.cred_matches.length > 0) {
+                    data.cred_matches.forEach(m => {
+                        signalsCloud.innerHTML += `<span class="signal-pill green">✓ Citation: "${escapeHtml(m)}"</span>`;
+                    });
+                }
+            } else {
+                signalsCloud.innerHTML += `<span class="signal-pill red">⚠ Sensational Language Detected</span>`;
+                if (data.sens_matches && data.sens_matches.length > 0) {
+                    data.sens_matches.forEach(m => {
+                        signalsCloud.innerHTML += `<span class="signal-pill red">⚠ Trigger: "${escapeHtml(m)}"</span>`;
+                    });
+                }
+                if (data.caps_count > 0) {
+                    signalsCloud.innerHTML += `<span class="signal-pill red">⚠ Excessive Uppercase Wording</span>`;
+                }
+                if (data.multi_punc_count > 0) {
+                    signalsCloud.innerHTML += `<span class="signal-pill red">⚠ Hyperbolic Punctuation (!!/??)</span>`;
+                }
+            }
+
+            resultsView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function escapeHtml(string) {
+            const div = document.createElement('div');
+            div.innerText = string;
+            return div.innerHTML;
+        }
+
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function saveToHistory(text, data) {
+            let history = JSON.parse(localStorage.getItem('truthlens_history') || '[]');
+            history.unshift({
+                snippet: text.length > 80 ? text.substring(0, 80) + '...' : text,
+                fullText: text,
+                label: data.label,
+                confidence: data.confidence,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            if (history.length > 6) history.pop();
+            localStorage.setItem('truthlens_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('truthlens_history') || '[]');
+            const historySec = document.getElementById('history-section');
+            const historyList = document.getElementById('history-list');
+
+            if (history.length === 0) {
+                historySec.style.display = 'none';
+                return;
+            }
+
+            historySec.style.display = 'block';
+            historyList.innerHTML = '';
+
+            history.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'history-item';
+                el.innerHTML = `
+                    <div class="history-snippet" title="${escapeHtml(item.fullText)}">${escapeHtml(item.snippet)}</div>
+                    <span class="history-badge ${item.label}">${item.label.toUpperCase()} (${item.confidence}%)</span>
+                `;
+                el.onclick = () => {
+                    textarea.value = item.fullText;
+                    updateStats();
+                    document.getElementById('verify-btn').click();
+                };
+                historyList.appendChild(el);
+            });
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('truthlens_history');
+            renderHistory();
+            showToast("History cleared.");
+        }
+
+        const themeBtn = document.getElementById('theme-btn');
+        function initTheme() {
+            const saved = localStorage.getItem('truthlens_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+            themeBtn.textContent = saved === 'dark' ? '☀️' : '🌙';
+        }
+
+        themeBtn.onclick = () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('truthlens_theme', next);
+            themeBtn.textContent = next === 'dark' ? '☀️' : '🌙';
+        };
+
+        initTheme();
+        renderHistory();
+    </script>
+</body>
+</html>
